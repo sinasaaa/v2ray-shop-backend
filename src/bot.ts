@@ -34,8 +34,13 @@ const isAdmin = (ctx: Context): boolean => {
 export const bot = new Telegraf<MyContext>(BOT_TOKEN);
 
 // Use session middleware
-bot.use(session());
-
+// Use session middleware with a default value
+bot.use(session({
+    defaultSession: () => ({
+        scene: undefined,
+        planData: {}
+    })
+}));
 // ===== CORE BOT LOGIC =====
 
 // --- 1. /start command ---
