@@ -223,3 +223,10 @@ export const startBot = () => {
     bot.launch();
     logger.info('🤖 Telegram Bot (Pure) has been started successfully.');
 };
+bot.command('clearkeyboard', (ctx) => {
+    ctx.reply('Clearing keyboard...', {
+        reply_markup: {
+            remove_keyboard: true
+        }
+    });
+});
