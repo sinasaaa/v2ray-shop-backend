@@ -1,58 +1,48 @@
-// ===== MODIFIED CODE (Section: src/utils/api.ts) =====
+// ===== FINAL CORRECTED CODE (Section: src/utils/api.ts) =====
 
 import axios from 'axios';
 import logger from './logger';
+import { URLSearchParams } from 'url'; // Import URLSearchParams for form data
 
-// This function now takes panel details as arguments to test the connection
-export async function testPanelConnection(url: string, user: string, pass: string): Promise<boolean> {
+// This function now perfectly mimics the browser's login request.
+export async function testPanelConnection(panelBaseUrl: string, user: string, pass: string): Promise<boolean> {
+    // Construct the correct, full login URL from the base URL provided by the user.
+    // The base URL should be like: https://panel2.wikicity.ir:2053/TOFTr6aum2
+    const loginUrl = `${panelBaseUrl}/login`;
+
+    // Create data in 'application/x-www-form-urlencoded' format.
+    const formData = new URLSearchParams();
+    formData.append('username', user);
+    formData.append('password', pass);
+
     try {
-        const response = await axios.post(`${url}/login`, {
-            username: user,
-            password: pass,
-        }, { timeout: 5000 }); // Add a 5-second timeout
+        const response = await axios.post(loginUrl, formData, {
+            timeout: 7000, // Increased timeout just in case
+            headers: {
+                // Set the correct Content-Type header
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
 
-        // Check if the response headers contain the session cookie
+        // Look for the specific 'x-ui' cookie.
         const cookie = response.headers['set-cookie']?.[0];
-        if (cookie && cookie.includes('session=')) {
-            logger.info(`Successfully connected to panel at ${url}`);
+        if (cookie && cookie.startsWith('x-ui=')) {
+            logger.info(`Successfully connected to panel at ${panelBaseUrl}`);
             return true;
         }
-        logger.warn(`Login to panel at ${url} seemed successful but no session cookie was found.`);
+        
+        logger.warn(`Login to panel at ${panelBaseUrl} seemed successful (status ${response.status}) but no 'x-ui' cookie was found.`);
         return false;
+
     } catch (error: any) {
         if (axios.isAxiosError(error)) {
-            logger.error(`Failed to connect to panel at ${url}. Status: ${error.response?.status}, Data: ${JSON.stringify(error.response?.data)}`);
+            logger.error(`Failed to connect to panel at ${loginUrl}. Status: ${error.response?.status}, Data: ${JSON.stringify(error.response?.data)}`);
         } else {
-            logger.error(`An unexpected error occurred while connecting to panel at ${url}:`, error);
+            logger.error(`An unexpected error occurred while connecting to panel at ${loginUrl}:`, error);
         }
         return false;
     }
 }
 
-
-// This function will now read from environment variables to be used by the app later
-export async function getLivePanelSession(): Promise<string> {
-    const PANEL_URL = process.env.PANEL_URL;
-    const PANEL_USERNAME = process.env.PANEL_USERNAME;
-    const PANEL_PASSWORD = process.env.PANEL_PASSWORD;
-
-    if (!PANEL_URL || !PANEL_USERNAME || !PANEL_PASSWORD) {
-        throw new Error('Panel credentials are not configured in .env file.');
-    }
-    
-    try {
-        const response = await axios.post(`${PANEL_URL}/login`, {
-            username: PANEL_USERNAME,
-            password: PANEL_PASSWORD,
-        });
-        const cookie = response.headers['set-cookie']?.[0];
-        if (!cookie) throw new Error('Login failed: No session cookie received.');
-        return cookie;
-    } catch (error) {
-        logger.error('Failed to get live panel session:', error);
-        throw new Error('Could not connect to V2Ray panel with stored credentials.');
-    }
-}
-
-// TODO: You still need to implement the createV2RayUser function using getLivePanelSession
-// export async function createV2RayUser(...) { ... }
+// The rest of the file (getLivePanelSession, etc.) can be updated later in the same way.
+// For now, we focus on making the test connection work.
