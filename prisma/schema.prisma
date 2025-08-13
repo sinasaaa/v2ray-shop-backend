@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        BigInt   @id // Telegram User ID
+  firstName String
+  lastName  String?
+  username  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+}
+
+model Plan {
+  id          Int      @id @default(autoincrement())
+  title       String   @unique
+  description String
+  price       Float    // Price in Toman or other currency
+  duration    Int      // Duration in days
+  dataLimit   BigInt   // Data limit in bytes (for better precision)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders Order[]
+}
+
+model Order {
+  id         String     @id @default(cuid())
+  user       User       @relation(fields: [userId], references: [id])
+  userId     BigInt
+  plan       Plan       @relation(fields: [planId], references: [id])
+  planId     Int
+  status     OrderStatus @default(PENDING)
+  configLink String?    // The generated V2Ray config link
+  paymentId  String?    // ID from the payment gateway
+  createdAt  DateTime   @default(now())
+  expiresAt  DateTime?  // When the config will expire
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
