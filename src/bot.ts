@@ -1,3 +1,5 @@
+// ===== MODIFIED CODE: src/bot.ts =====
+
 import { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
 import logger from './utils/logger';
@@ -26,17 +28,24 @@ bot.start((ctx) => {
   );
 });
 
+// This is the corrected section
 bot.on(message('web_app_data'), (ctx) => {
-  try {
-    const data = JSON.parse(ctx.webAppData.data.read().toString());
-    logger.info(`Received data from web app: ${JSON.stringify(data)}`);
-    
-    // Here you would typically trigger the order creation process
-    // For now, we just acknowledge
-    ctx.reply(`درخواست شما برای پلن ${data.planTitle} دریافت شد. منتظر بمانید...`);
-  } catch (error) {
-    logger.error('Failed to parse web_app_data', error);
-    ctx.reply('خطایی در پردازش درخواست شما رخ داد.');
+  // 1. Check if webAppData exists before using it
+  if (ctx.webAppData) {
+    try {
+      // 2. Use the correct method to get data: data.json()
+      const data = ctx.webAppData.data.json();
+      logger.info(`Received data from web app: ${JSON.stringify(data)}`);
+      
+      // Here you would typically trigger the order creation process
+      // For now, we just acknowledge
+      ctx.reply(`درخواست شما برای پلن ${data.planTitle} دریافت شد. منتظر بمانید...`);
+    } catch (error) {
+      logger.error('Failed to parse web_app_data', error);
+      ctx.reply('خطایی در پردازش درخواست شما رخ داد.');
+    }
+  } else {
+    logger.warn('Received a message of type web_app_data but the data was undefined.');
   }
 });
 
