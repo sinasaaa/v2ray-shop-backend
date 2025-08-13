@@ -1,73 +1,58 @@
+// ===== MODIFIED CODE (Section: src/utils/api.ts) =====
+
 import axios from 'axios';
 import logger from './logger';
 
-// These should be configured via environment variables
-const PANEL_URL = process.env.PANEL_URL || 'http://127.0.0.1:2053';
-const PANEL_USERNAME = process.env.PANEL_USERNAME || 'admin';
-const PANEL_PASSWORD = process.env.PANEL_PASSWORD || 'admin';
+// This function now takes panel details as arguments to test the connection
+export async function testPanelConnection(url: string, user: string, pass: string): Promise<boolean> {
+    try {
+        const response = await axios.post(`${url}/login`, {
+            username: user,
+            password: pass,
+        }, { timeout: 5000 }); // Add a 5-second timeout
 
-let sessionCookie = '';
-
-async function getSessionCookie(): Promise<string> {
-    if (sessionCookie) {
-        return sessionCookie;
+        // Check if the response headers contain the session cookie
+        const cookie = response.headers['set-cookie']?.[0];
+        if (cookie && cookie.includes('session=')) {
+            logger.info(`Successfully connected to panel at ${url}`);
+            return true;
+        }
+        logger.warn(`Login to panel at ${url} seemed successful but no session cookie was found.`);
+        return false;
+    } catch (error: any) {
+        if (axios.isAxiosError(error)) {
+            logger.error(`Failed to connect to panel at ${url}. Status: ${error.response?.status}, Data: ${JSON.stringify(error.response?.data)}`);
+        } else {
+            logger.error(`An unexpected error occurred while connecting to panel at ${url}:`, error);
+        }
+        return false;
     }
+}
 
+
+// This function will now read from environment variables to be used by the app later
+export async function getLivePanelSession(): Promise<string> {
+    const PANEL_URL = process.env.PANEL_URL;
+    const PANEL_USERNAME = process.env.PANEL_USERNAME;
+    const PANEL_PASSWORD = process.env.PANEL_PASSWORD;
+
+    if (!PANEL_URL || !PANEL_USERNAME || !PANEL_PASSWORD) {
+        throw new Error('Panel credentials are not configured in .env file.');
+    }
+    
     try {
         const response = await axios.post(`${PANEL_URL}/login`, {
             username: PANEL_USERNAME,
             password: PANEL_PASSWORD,
         });
         const cookie = response.headers['set-cookie']?.[0];
-        if (!cookie) {
-            throw new Error('Login failed: No session cookie received.');
-        }
-        sessionCookie = cookie;
-        logger.info('Successfully logged into V2Ray panel.');
-        return sessionCookie;
+        if (!cookie) throw new Error('Login failed: No session cookie received.');
+        return cookie;
     } catch (error) {
-        logger.error('Failed to log into V2Ray panel:', error);
-        throw new Error('Could not connect to V2Ray panel.');
+        logger.error('Failed to get live panel session:', error);
+        throw new Error('Could not connect to V2Ray panel with stored credentials.');
     }
 }
 
-// A conceptual function to create a user (inbound client)
-export async function createV2RayUser(email: string, dataLimitBytes: bigint, expireDays: number): Promise<string> {
-    const cookie = await getSessionCookie();
-    
-    const now = new Date();
-    const expireTime = now.setDate(now.getDate() + expireDays);
-
-    const clientData = {
-        id: 1, // The ID of the inbound you want to add the client to
-        settings: JSON.stringify({
-            clients: [
-                {
-                    email: email,
-                    totalGB: Number(dataLimitBytes / BigInt(1024 * 1024 * 1024)),
-                    expiryTime: expireTime,
-                    enable: true,
-                },
-            ],
-        }),
-    };
-
-    try {
-        // This is a conceptual API endpoint. You need to check the exact endpoint for your panel.
-        // For 3x-ui it might be something like '/panel/api/inbounds/addClient'
-        const response = await axios.post(`${PANEL_URL}/panel/api/inbounds/addClient`, clientData, {
-            headers: { 'Cookie': cookie },
-        });
-
-        // You need to extract the actual config link from the response
-        const configLink = response.data.configLink; // This is a placeholder
-        if (!configLink) {
-             throw new Error('Config link not found in panel response.');
-        }
-        logger.info(`Successfully created V2Ray user: ${email}`);
-        return configLink;
-    } catch (error) {
-        logger.error(`Failed to create V2Ray user ${email}:`, error);
-        throw new Error('API call to V2Ray panel failed.');
-    }
-}
+// TODO: You still need to implement the createV2RayUser function using getLivePanelSession
+// export async function createV2RayUser(...) { ... }
