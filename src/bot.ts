@@ -1,8 +1,15 @@
-// ===== MODIFIED CODE: src/bot.ts =====
+// ===== FINAL MODIFIED CODE: src/bot.ts =====
 
 import { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
 import logger from './utils/logger';
+
+// --- Type Definitions ---
+// We define the shape of the data we expect from our Mini App.
+interface MiniAppData {
+  planId: string;
+  planTitle: string;
+}
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 if (!BOT_TOKEN) {
@@ -28,18 +35,17 @@ bot.start((ctx) => {
   );
 });
 
-// This is the corrected section
+// This is the final corrected section
 bot.on(message('web_app_data'), (ctx) => {
-  // 1. Check if webAppData exists before using it
   if (ctx.webAppData) {
     try {
-      // 2. Use the correct method to get data: data.json()
-      const data = ctx.webAppData.data.json();
-      logger.info(`Received data from web app: ${JSON.stringify(data)}`);
+      // Tell TypeScript to trust us: "Treat the result of json() AS MiniAppData"
+      const data = ctx.webAppData.data.json() as MiniAppData;
       
-      // Here you would typically trigger the order creation process
-      // For now, we just acknowledge
-      ctx.reply(`درخواست شما برای پلن ${data.planTitle} دریافت شد. منتظر بمانید...`);
+      // Now TypeScript knows that data.planTitle is a string and allows access.
+      logger.info(`Received data from web app: ${JSON.stringify(data)}`);
+      ctx.reply(`درخواست شما برای پلن "${data.planTitle}" دریافت شد. منتظر بمانید...`);
+
     } catch (error) {
       logger.error('Failed to parse web_app_data', error);
       ctx.reply('خطایی در پردازش درخواست شما رخ داد.');
