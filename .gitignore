@@ -1,0 +1,21 @@
+# Dependencies
+/node_modules
+
+# Prisma
+.env
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# TypeScript
+/dist
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
