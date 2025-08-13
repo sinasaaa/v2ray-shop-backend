@@ -31,7 +31,7 @@ const isAdmin = (ctx: Context): boolean => {
 };
 
 // ===== BOT INITIALIZATION =====
-const bot = new Telegraf<MyContext>(BOT_TOKEN);
+export const bot = new Telegraf<MyContext>(BOT_TOKEN);
 
 // Use session middleware
 bot.use(session());
