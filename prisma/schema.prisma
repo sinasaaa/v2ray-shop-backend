@@ -1,6 +1,13 @@
-// ===== MODIFIED CODE (Section: prisma/schema.prisma) =====
+// ===== FINAL & COMPLETE PRISMA SCHEMA =====
 
-// (generator و datasource مثل قبل باقی می‌مانند)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
 model User {
   id        BigInt   @id // Telegram User ID
@@ -17,12 +24,11 @@ model User {
   courses     Course[]
 }
 
-// NEW MODEL for panel settings
 model Panel {
   id        Int      @id @default(autoincrement())
   url       String
   username  String
-  password  String   // In a real high-security app, this should be encrypted
+  password  String   // Should be encrypted in a real high-security app
 
   // Relation to the admin user
   user      User     @relation(fields: [userId], references: [id])
@@ -32,11 +38,40 @@ model Panel {
   updatedAt DateTime @updatedAt
 }
 
-model Course { /* ... as before ... */ }
-model Enrollment { /* ... as before ... */ }
+// This is the full model for "Course", not a comment
+model Course {
+  id          Int      @id @default(autoincrement())
+  title       String   @unique
+  description String
+  price       Float
+  isActive    Boolean  @default(true)
+  duration    Int      // Duration in days
+  dataLimit   BigInt   // Data limit in bytes
 
+  instructor  User     @relation(fields: [instructorId], references: [id])
+  instructorId BigInt
+
+  enrollments Enrollment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// This is the full model for "Enrollment"
+model Enrollment {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    BigInt
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+}
+
+// This is the full enum definition
 enum UserRole {
   STUDENT
-  INSTRUCTOR
   ADMIN
+  INSTRUCTOR // Added back the INSTRUCTOR role
 }
